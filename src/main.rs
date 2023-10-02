@@ -48,6 +48,8 @@ fn main() {
                     .output()
                     .expect("Failed to execute Cargo clean command");
             }
+
+            println!("Done: {:?}", dir_path);
         }
     });
 }
