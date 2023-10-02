@@ -30,7 +30,7 @@ fn main() {
             println!("Processing: {:?}", dir_path);
 
             if dir_path.join("pubspec.yaml").exists() {
-                let output = Command::new("flutter")
+                Command::new("flutter")
                     .arg("clean")
                     .arg("&&")
                     .arg("flutter")
@@ -39,18 +39,14 @@ fn main() {
                     .current_dir(dir_path)
                     .output()
                     .expect("Failed to execute Flutter commands");
-
-                println!("{}", String::from_utf8_lossy(&output.stdout));
             }
 
             if dir_path.join("Cargo.toml").exists() {
-                let output = Command::new("cargo")
+                Command::new("cargo")
                     .arg("clean")
                     .current_dir(dir_path)
                     .output()
                     .expect("Failed to execute Cargo clean command");
-
-                println!("{}", String::from_utf8_lossy(&output.stdout));
             }
         }
     });
