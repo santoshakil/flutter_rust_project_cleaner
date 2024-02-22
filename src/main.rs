@@ -4,9 +4,16 @@ use std::process::Command;
 use walkdir::WalkDir;
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        println!("Please provide the target directory as a command-line argument");
+        return;
+    }
+    let target_directory = &args[1];
+
     let current_dir = env::current_dir().expect("Failed to get current directory");
 
-    let target_dirs: Vec<_> = WalkDir::new(&"/Users/santoshakil/Projects")
+    let target_dirs: Vec<_> = WalkDir::new(target_directory)
         .into_iter()
         .filter_map(|entry| {
             let entry = entry.expect("Failed to read directory entry");
