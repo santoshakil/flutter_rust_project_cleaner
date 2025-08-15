@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable, beta, nightly]
+        exclude:
+          - os: macos-latest
+            rust: beta
+          - os: windows-latest
+            rust: beta
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+    - name: Cache cargo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+    - name: Run tests
+      run: cargo test --all-features
+    - name: Check formatting
+      run: cargo fmt -- --check
+      if: matrix.rust == 'stable'
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+      if: matrix.rust == 'stable'
+
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+    - name: Install musl tools
+      if: matrix.target == 'x86_64-unknown-linux-musl'
+      run: sudo apt-get install -y musl-tools
+    - name: Build
+      run: cargo build --release --target ${{ matrix.target }}
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: frpc-${{ matrix.target }}
+        path: target/${{ matrix.target }}/release/frpc${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Install tarpaulin
+      run: cargo install cargo-tarpaulin
+    - name: Generate coverage
+      run: cargo tarpaulin --out xml
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./cobertura.xml

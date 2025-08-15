@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Get version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+
+  build:
+    name: Build and Upload
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name: frpc-linux-amd64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            asset_name: frpc-linux-amd64-musl
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name: frpc-windows-amd64.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_name: frpc-macos-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset_name: frpc-macos-arm64
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+    - name: Install musl tools
+      if: matrix.target == 'x86_64-unknown-linux-musl'
+      run: sudo apt-get install -y musl-tools
+    - name: Build
+      run: cargo build --release --target ${{ matrix.target }}
+    - name: Copy binary
+      run: |
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          cp target/${{ matrix.target }}/release/frpc.exe ${{ matrix.asset_name }}
+        else
+          cp target/${{ matrix.target }}/release/frpc ${{ matrix.asset_name }}
+        fi
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.release.outputs.upload_url }}
+        asset_path: ./${{ matrix.asset_name }}
+        asset_name: ${{ matrix.asset_name }}
+        asset_content_type: application/octet-stream
+
+  publish:
+    name: Publish to crates.io
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Publish
+      run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
