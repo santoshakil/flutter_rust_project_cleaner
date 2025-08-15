@@ -1,8 +1,67 @@
 [package]
 name = "flutter_rust_project_cleaner"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "Enterprise-grade CLI tool for cleaning Flutter and Rust projects"
+license = "MIT"
+homepage = "https://github.com/yourname/flutter_rust_project_cleaner"
+repository = "https://github.com/yourname/flutter_rust_project_cleaner"
+readme = "README.md"
+keywords = ["flutter", "rust", "clean", "cli", "tool"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "frpc"
+path = "src/main.rs"
 
 [dependencies]
-walkdir = "2"
-rayon = "1"
+clap = { version = "4.5", features = ["derive", "env"] }
+anyhow = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.47", features = ["full"] }
+walkdir = "2.5"
+rayon = "1.11"
+indicatif = "0.18"
+colored = "3.0.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.9"
+which = "8.0"
+num_cpus = "1.17"
+dialoguer = "0.11"
+home = "0.5"
+clap_complete = "4.5"
+lazy_static = "1.5"
+tempfile = "3.20"
+serde_yaml = "0.9"
+serde_json = "1.0"
+humansize = "2.1"
+glob-match = "0.2"
+open = "5.3"
+
+[dev-dependencies]
+criterion = "0.7"
+tempfile = "3.20"
+mockall = "0.13.1"
+proptest = "1.7"
+
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.dev]
+incremental = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
